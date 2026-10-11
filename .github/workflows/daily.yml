@@ -1,0 +1,37 @@
+name: daily-inplay-watchlist
+on:
+  schedule:
+    - cron: "45 21 * * 1-5"   # 美股收市後(UTC 21:45;夏令約收市後 1h45、冬令 45min),星期一至五
+    - cron: "30 0 * * 2-6"    # 補跑:包 16:00–20:00 ET 收市後申報(UTC 隔日 00:30)
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      INPLAY_START: "2025-06-01"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - run: python watchlist.py --refresh
+      - run: mkdir -p _site && cp out/watchlist.html _site/index.html && cp out/watchlist.json _site/watchlist.json
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: _site}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

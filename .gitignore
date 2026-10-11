@@ -1,0 +1,5 @@
+prices.pkl
+data/
+out/
+__pycache__/
+.venv/
